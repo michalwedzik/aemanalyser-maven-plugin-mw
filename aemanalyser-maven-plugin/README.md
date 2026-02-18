@@ -30,7 +30,7 @@ Example:
     <plugin>
         <groupId>com.adobe.aem</groupId>
         <artifactId>aemanalyser-maven-plugin</artifactId>
-        <version>1.6.4</version> <!-- Make sure to use the latest release -->
+        <version>1.6.16</version> <!-- Make sure to use the latest release -->
         <extensions>true</extensions>
     </plugin>
 
