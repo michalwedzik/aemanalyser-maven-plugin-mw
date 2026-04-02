@@ -20,14 +20,21 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
 import org.apache.sling.feature.ArtifactId;
 import org.apache.sling.feature.Feature;
 import org.apache.sling.feature.builder.FeatureProvider;
@@ -101,6 +108,34 @@ public class AemAggregatorTest {
     }
 
     @Test
+    public void shouldDetectIncorrectPathsDuringAggregation() throws Exception {
+        Logger logger = (Logger) LoggerFactory.getLogger(RepoInitUtil.class);
+        ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+        listAppender.start();
+        logger.addAppender(listAppender);
+
+        final AemAggregator agg = new AemAggregator();
+        agg.setFeatureOutputDirectory(tempDir.newFolder("target", "cp-conversion", "fm.out"));
+        agg.setProjectId(ArtifactId.parse("gp:ap:5"));
+        agg.setSdkId(ArtifactId.parse("com.adobe.aem:aem-sdk-api:2026.3.24893.20260312T165332Z-260200"));
+        agg.setFeatureProvider(Feature::new);
+
+        copyTestResource("mappingfiles/runmode_4.mapping",
+                "target/cp-conversion/fm.out/runmode.mapping");
+
+        copyTestResourceDir("features/",
+                "target/cp-conversion/fm.out/");
+
+        agg.aggregate() ;
+
+        long count = listAppender.list.stream()
+                .filter(event -> event.getFormattedMessage()
+                        .contains("Incorrect repoinit: "))
+                .count();
+
+        assertEquals(4, count);
+    }
+    @Test
     public void testUserAggregates2() throws Exception {
         final AemAggregator agg = new AemAggregator();
         agg.setFeatureOutputDirectory(tempDir.newFolder("target", "cp-conversion", "fm.out"));
@@ -151,14 +186,7 @@ public class AemAggregatorTest {
         agg.setProjectId(ArtifactId.parse("gp:ap:5"));
         agg.setSdkId(ArtifactId.parse("lala:hoho:0.0.1"));
 
-        agg.setFeatureProvider(new FeatureProvider(){
-
-            @Override
-            public Feature provide(ArtifactId id) {
-                return new Feature(id);
-            }
-
-        });
+        agg.setFeatureProvider(Feature::new);
         final Map<ProductVariation, List<Feature>> aggregates = agg.getProductAggregates();
         assertEquals(2, aggregates.size());
 
@@ -195,14 +223,7 @@ public class AemAggregatorTest {
         agg.setProjectId(ArtifactId.parse("gp:ap:5"));
         agg.setSdkId(ArtifactId.parse("lala:hoho:0.0.1"));
 
-        agg.setFeatureProvider(new FeatureProvider(){
-
-            @Override
-            public Feature provide(ArtifactId id) {
-                return new Feature(id);
-            }
-
-        });
+        agg.setFeatureProvider(Feature::new);
         final Map<String, List<Feature>> userAggregates = new HashMap<>();
         userAggregates.put("user-aggregated-author", Collections.emptyList());
         userAggregates.put("user-aggregated-author.prod", Collections.emptyList());
@@ -258,6 +279,28 @@ public class AemAggregatorTest {
             Path targetPath = tempDir.getRoot().toPath().resolve(file);
             Files.createDirectories(targetPath.getParent());
             Files.copy(is, targetPath);
+        }
+    }
+
+    private void copyTestResourceDir(String resourceDir, String targetDir) throws Exception {
+        URL url = getClass().getResource("/" + resourceDir);
+
+        if (url == null) {
+            throw new IllegalArgumentException("Resource not found: " + resourceDir);
+        }
+
+        Path sourcePath = Paths.get(url.toURI());
+        Path targetPath = tempDir.getRoot().toPath().resolve(targetDir);
+
+        Files.createDirectories(targetPath);
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(sourcePath)) {
+            for (Path sourceFile : stream) {
+                if (Files.isRegularFile(sourceFile)) {
+                    Path targetFile = targetPath.resolve(sourceFile.getFileName());
+                    Files.copy(sourceFile, targetFile, StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
         }
     }
 
