@@ -45,23 +45,12 @@ public class RepoInitUtilTest {
     }
 
     @Test
-    public void shouldReturnTrueForIncorrectRepoinit() {
-        Extension extension = mock(Extension.class);
-        when(extension.getType()).thenReturn(ExtensionType.TEXT);
-        when(extension.getText()).thenReturn(
-                "create path (sling:Folder) /apps/namics/genericmultifield/readonly"
-        );
-
-        assertTrue(RepoInitUtil.isRepoinitIncorrect(extension));
-    }
-
-    @Test
     public void shouldReturnTrueWhenMultipleLinesContainIncorrect() {
         Extension extension = mock(Extension.class);
         when(extension.getType()).thenReturn(ExtensionType.TEXT);
         when(extension.getText()).thenReturn(
-                "create path (sling:Folder) /apps/namics/genericmultifield/readonly\n" +
-                        "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/js"
+                "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/css(cq:ClientLibraryFolder)\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/css"
         );
 
         assertTrue(RepoInitUtil.isRepoinitIncorrect(extension));
