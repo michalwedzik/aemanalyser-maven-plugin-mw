@@ -470,7 +470,6 @@ public class AemAggregator {
             }
 
             postProcessProductFeature(feature);
-            RepoInitUtil.validateRepoinit(feature);
 
             final File featureFile = new File(this.getFeatureOutputDirectory(), aggregate.getKey().concat(".json"));
             try ( final Writer writer = new FileWriter(featureFile)) {
@@ -485,6 +484,7 @@ public class AemAggregator {
             result.add(feature);
         }
 
+        RepoInitUtil.validateRepoinit(result, mode);
         return result;
     }
 

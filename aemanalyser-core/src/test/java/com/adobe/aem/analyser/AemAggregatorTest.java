@@ -128,12 +128,26 @@ public class AemAggregatorTest {
 
         agg.aggregate() ;
 
-        long count = listAppender.list.stream()
-                .filter(event -> event.getFormattedMessage()
-                        .contains("Incorrect repoinit: "))
-                .count();
+        assertEquals(1, listAppender.list.size());
+        String normalized = listAppender.list.get(0).getFormattedMessage().replaceAll("(?m)^validateRepoinit took .*\\R?", "");
 
-        assertEquals(4, count);
+        assertEquals("Repoinit validation results:\n" +
+                "Incorrect repoinit for feature Assembled Feature [id=gp:ap:slingosgifeature:aggregated-publish:5]\n" +
+                "Found 2 sets of conflicting repoinit statements:\n" +
+                "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/css(cq:ClientLibraryFolder)\n" +
+                "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/css\n" +
+                "\n" +
+                "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/js(cq:ClientLibraryFolder)\n" +
+                "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/js\n" +
+                "\n" +
+                "Incorrect repoinit for feature Assembled Feature [id=gp:ap:slingosgifeature:aggregated-author:5]\n" +
+                "Found 2 sets of conflicting repoinit statements:\n" +
+                "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/css(cq:ClientLibraryFolder)\n" +
+                "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/css\n" +
+                "\n" +
+                "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/js(cq:ClientLibraryFolder)\n" +
+                "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/js\n\n", normalized);
+
     }
     @Test
     public void testUserAggregates2() throws Exception {

@@ -23,6 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -32,16 +34,56 @@ class RepoInitUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RepoInitUtil.class);
 
-    static void validateRepoinit(Feature feature) {
-        final Extension repoinitExtension = feature.getExtensions().getByName("repoinit");
-        if (isRepoinitIncorrect(repoinitExtension)) {
-                LOGGER.info("Incorrect repoinit: '{}' for feature {}", repoinitExtension.getText(), feature);
+    static void validateRepoinit(final List<Feature> features, final AemAggregator.Mode mode) {
+        if (mode != AemAggregator.Mode.FINAL) {
+            return;
+        }
+
+        long start = System.nanoTime();
+        StringBuilder validationResult = new StringBuilder();
+        try {
+            validationResult = validateRepoinit(features);
+        } finally {
+            long end = System.nanoTime();
+            long durationMs = (end - start) / 1_000_000;
+
+            validationResult.append("validateRepoinit took ");
+            validationResult.append(durationMs);
+            validationResult.append(" ms\n");
+            LOGGER.warn(validationResult.toString());
         }
     }
 
-    static boolean isRepoinitIncorrect(Extension repoinitExtension) {
+    static StringBuilder validateRepoinit(final List<Feature> features) {
+        StringBuilder logMessage = new StringBuilder("Repoinit validation results:\n");
+        for (Feature feature : features) {
+            if (feature.getExtensions().getByName("repoinit") == null) {
+                continue;
+            }
+
+            final Extension repoinitExtension = feature.getExtensions().getByName("repoinit");
+            List<CreatePath[]> conflicts = doesRepoinitHaveConflicts(repoinitExtension);
+
+            if (!conflicts.isEmpty()) {
+                logMessage.append("Incorrect repoinit for feature ").append(feature).append("\n");
+                logMessage.append("Found ").append(conflicts.size()).append(" sets of conflicting repoinit statements:\n");
+                for (CreatePath[] conflict : conflicts) {
+                    logMessage.append(conflict[0].asRepoInitString().stripTrailing()).append("\n");
+                    logMessage.append(conflict[1].asRepoInitString().stripTrailing()).append("\n");
+                    logMessage.append("\n");
+                }
+            }
+        }
+
+        if (logMessage.length() > 29) {
+           return logMessage;
+        }
+        return logMessage.append("No issues found\n");
+    }
+
+    private static List<CreatePath[]> doesRepoinitHaveConflicts(Extension repoinitExtension) {
         if (repoinitExtension == null || repoinitExtension.getText() == null || repoinitExtension.getType() != ExtensionType.TEXT) {
-            return false;
+            return Collections.emptyList();
         }
 
         try {
@@ -54,48 +96,54 @@ class RepoInitUtil {
                     .map(op -> (CreatePath) op)
                     .collect(Collectors.toList());
 
-            return isCreatePathsIncorrect(createPaths);
+            return hasConflicts(createPaths);
         } catch (ParseException e) {
-            return false;
+            return Collections.emptyList();
         }
     }
 
-    private static boolean isCreatePathsIncorrect(List<CreatePath> createPaths) {
+    private static List<CreatePath[]> hasConflicts(List<CreatePath> createPaths) {
         int size = createPaths.size();
-
+        List<CreatePath[]> conflicts = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             for (int j = i + 1; j < size; j++) {
-                if (hasConflict(createPaths.get(i), createPaths.get(j))) {
-                    return true;
+                List<CreatePath[]> conflict = hasConflict(createPaths.get(i), createPaths.get(j));
+                if (!conflict.isEmpty()) {
+                    conflicts.addAll(conflict);
                 }
             }
         }
-        return false;
+        return conflicts;
     }
 
-    private static boolean hasConflict(CreatePath a, CreatePath b) {
+    private static List<CreatePath[]> hasConflict(CreatePath a, CreatePath b) {
         List<PathSegmentDefinition> aDefs = a.getDefinitions();
         List<PathSegmentDefinition> bDefs = b.getDefinitions();
 
         // different depth → no conflict
         if (aDefs.size() != bDefs.size()) {
-            return false;
+            return Collections.emptyList();
         }
-
+        List<CreatePath[]> conflicts = new ArrayList<>();
         for (int i = 0; i < aDefs.size(); i++) {
             PathSegmentDefinition aSeg = aDefs.get(i);
             PathSegmentDefinition bSeg = bDefs.get(i);
 
             // segments diverge → stop comparing this pair
             if (!Objects.equals(aSeg.getSegment(), bSeg.getSegment())) {
-                return false;
+                return Collections.emptyList();
             }
 
             // same segment but different type → conflict
             if (!Objects.equals(aSeg.getPrimaryType(), bSeg.getPrimaryType())) {
-                return true;
+                CreatePath[] conflict = new CreatePath[2];
+                conflict[0] = a;
+                conflict[1] = b;
+
+                conflicts.add(conflict);
+                break;
             }
         }
-        return false;
+        return conflicts;
     }
 }
