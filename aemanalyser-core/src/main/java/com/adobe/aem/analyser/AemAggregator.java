@@ -292,6 +292,7 @@ public class AemAggregator {
 
         final List<Feature> finalResult = this.aggregate(finalAggregates, Mode.FINAL, projectFeatures);
 
+        RepoInitUtil.validateRepoinit(finalResult);
         // find final author and publish feature and get configuration api and artifact rules
         Map<ProductVariation, ConfigurationApi> apiMapping = new HashMap<>();
         Map<ProductVariation, ArtifactRules> rules = new HashMap<>();
@@ -484,7 +485,6 @@ public class AemAggregator {
             result.add(feature);
         }
 
-        RepoInitUtil.validateRepoinit(result, mode);
         return result;
     }
 

@@ -34,15 +34,13 @@ class RepoInitUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RepoInitUtil.class);
 
-    static void validateRepoinit(final List<Feature> features, final AemAggregator.Mode mode) {
-        if (mode != AemAggregator.Mode.FINAL) {
-            return;
-        }
+
+    static void validateRepoinit(final List<Feature> features) {
 
         long start = System.nanoTime();
         StringBuilder validationResult = new StringBuilder();
         try {
-            validationResult = validateRepoinit(features);
+            validationResult = validateFeatures(features);
         } finally {
             long end = System.nanoTime();
             long durationMs = (end - start) / 1_000_000;
@@ -54,7 +52,7 @@ class RepoInitUtil {
         }
     }
 
-    static StringBuilder validateRepoinit(final List<Feature> features) {
+    static StringBuilder validateFeatures(final List<Feature> features) {
         StringBuilder logMessage = new StringBuilder("Repoinit validation results:\n");
         for (Feature feature : features) {
             if (feature.getExtensions().getByName("repoinit") == null) {

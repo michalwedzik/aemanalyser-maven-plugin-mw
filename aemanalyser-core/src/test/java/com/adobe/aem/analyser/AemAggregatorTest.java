@@ -37,7 +37,6 @@ import ch.qos.logback.core.read.ListAppender;
 import org.slf4j.LoggerFactory;
 import org.apache.sling.feature.ArtifactId;
 import org.apache.sling.feature.Feature;
-import org.apache.sling.feature.builder.FeatureProvider;
 import org.apache.sling.feature.extension.apiregions.api.artifacts.ArtifactRules;
 import org.apache.sling.feature.extension.apiregions.api.artifacts.Mode;
 import org.apache.sling.feature.extension.apiregions.api.artifacts.VersionRule;

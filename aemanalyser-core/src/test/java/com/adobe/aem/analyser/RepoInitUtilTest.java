@@ -15,7 +15,7 @@ public class RepoInitUtilTest {
 
     @Test
     public void shouldReturnNoIssuesWhenNoFeatures() {
-        String result = RepoInitUtil.validateRepoinit(List.of()).toString();
+        String result = RepoInitUtil.validateFeatures(List.of()).toString();
 
         assertTrue(result.contains("No issues found"));
     }
@@ -26,7 +26,7 @@ public class RepoInitUtilTest {
         when(feature.getExtensions()).thenReturn(mock(org.apache.sling.feature.Extensions.class));
         when(feature.getExtensions().getByName("repoinit")).thenReturn(null);
 
-        String result = RepoInitUtil.validateRepoinit(List.of(feature)).toString();
+        String result = RepoInitUtil.validateFeatures(List.of(feature)).toString();
 
         assertTrue(result.contains("No issues found"));
     }
@@ -40,7 +40,7 @@ public class RepoInitUtilTest {
         );
         Feature feature = featureWithExtension(extension);
 
-        String result = RepoInitUtil.validateRepoinit(List.of(feature)).toString();
+        String result = RepoInitUtil.validateFeatures(List.of(feature)).toString();
 
         assertTrue(result.contains("No issues found"));
     }
@@ -54,7 +54,7 @@ public class RepoInitUtilTest {
 
         Feature feature = featureWithExtension(extension);
 
-        String result = RepoInitUtil.validateRepoinit(List.of(feature)).toString();
+        String result = RepoInitUtil.validateFeatures(List.of(feature)).toString();
 
         assertTrue(result.contains("Incorrect repoinit for feature"));
         assertTrue(result.contains("Found 1 sets of conflicting repoinit statements"));
@@ -72,7 +72,7 @@ public class RepoInitUtilTest {
 
         Feature feature = featureWithExtension(extension);
 
-        String result = RepoInitUtil.validateRepoinit(List.of(feature)).toString();
+        String result = RepoInitUtil.validateFeatures(List.of(feature)).toString();
 
         assertTrue(result.contains("Found 2 sets of conflicting repoinit statements"));
     }
@@ -89,7 +89,7 @@ public class RepoInitUtilTest {
                         "create path (sling:Folder) /apps/x/y"
         ));
 
-        String result = RepoInitUtil.validateRepoinit(List.of(feature1, feature2)).toString();
+        String result = RepoInitUtil.validateFeatures(List.of(feature1, feature2)).toString();
 
         assertTrue(result.contains("Incorrect repoinit for feature"));
         assertTrue(result.contains("Found 1 sets of conflicting repoinit statements"));
@@ -101,7 +101,7 @@ public class RepoInitUtilTest {
 
         Feature feature = featureWithExtension(extension);
 
-        String result = RepoInitUtil.validateRepoinit(List.of(feature)).toString();
+        String result = RepoInitUtil.validateFeatures(List.of(feature)).toString();
 
         assertTrue(result.contains("No issues found"));
     }
