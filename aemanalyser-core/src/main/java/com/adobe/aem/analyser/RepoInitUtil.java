@@ -96,6 +96,7 @@ class RepoInitUtil {
 
             return hasConflicts(createPaths);
         } catch (ParseException e) {
+            LOGGER.error("Failed to parse repoinit statements, skipping conflict validation. Error: {}", e.getMessage(), e);
             return Collections.emptyList();
         }
     }
