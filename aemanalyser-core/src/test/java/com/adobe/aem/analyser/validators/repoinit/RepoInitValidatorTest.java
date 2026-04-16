@@ -1,24 +1,16 @@
-package com.adobe.aem.analyser;
+package com.adobe.aem.analyser.validators.repoinit;
 
 import org.apache.sling.feature.Extension;
 import org.apache.sling.feature.ExtensionType;
 import org.apache.sling.feature.Feature;
 import org.junit.Test;
 
-import java.util.List;
-
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class RepoInitUtilTest {
-
-    @Test
-    public void shouldReturnNoIssuesWhenNoFeatures() {
-        String result = RepoInitUtil.validateFeatures(List.of()).toString();
-
-        assertTrue(result.contains("No issues found"));
-    }
+public class RepoInitValidatorTest {
 
     @Test
     public void shouldReturnNoIssuesWhenFeatureHasNoRepoinit() {
@@ -26,9 +18,10 @@ public class RepoInitUtilTest {
         when(feature.getExtensions()).thenReturn(mock(org.apache.sling.feature.Extensions.class));
         when(feature.getExtensions().getByName("repoinit")).thenReturn(null);
 
-        String result = RepoInitUtil.validateFeatures(List.of(feature)).toString();
+        RepoInitValidationReport report = RepoInitValidator.validateRepoinit(feature);
 
-        assertTrue(result.contains("No issues found"));
+        assertFalse(report.hasConflicts());
+        assertTrue(report.generate().contains("No issues found"));
     }
 
     @Test
@@ -38,11 +31,13 @@ public class RepoInitUtilTest {
                         "create path (sling:Folder) /apps/a/c\n" +
                         "create path (sling:Folder) /apps/a/c/d(cq:ClientLibraryFolder)"
         );
+
         Feature feature = featureWithExtension(extension);
 
-        String result = RepoInitUtil.validateFeatures(List.of(feature)).toString();
+        RepoInitValidationReport report = RepoInitValidator.validateRepoinit(feature);
 
-        assertTrue(result.contains("No issues found"));
+        assertFalse(report.hasConflicts());
+        assertTrue(report.generate().contains("No issues found"));
     }
 
     @Test
@@ -54,8 +49,10 @@ public class RepoInitUtilTest {
 
         Feature feature = featureWithExtension(extension);
 
-        String result = RepoInitUtil.validateFeatures(List.of(feature)).toString();
+        RepoInitValidationReport report = RepoInitValidator.validateRepoinit(feature);
+        String result = report.generate();
 
+        assertTrue(report.hasConflicts());
         assertTrue(result.contains("Incorrect repoinit for feature"));
         assertTrue(result.contains("Found 1 sets of conflicting repoinit statements"));
         assertTrue(result.contains("/apps/a/b"));
@@ -72,27 +69,11 @@ public class RepoInitUtilTest {
 
         Feature feature = featureWithExtension(extension);
 
-        String result = RepoInitUtil.validateFeatures(List.of(feature)).toString();
+        RepoInitValidationReport report = RepoInitValidator.validateRepoinit(feature);
+        String result = report.generate();
 
+        assertTrue(report.hasConflicts());
         assertTrue(result.contains("Found 2 sets of conflicting repoinit statements"));
-    }
-
-    @Test
-    public void shouldReportConflictsForMultipleFeatures() {
-        Feature feature1 = featureWithExtension(textExtension(
-                "create path (sling:Folder) /apps/a/b(cq:ClientLibraryFolder)\n" +
-                        "create path (sling:Folder) /apps/a/b"
-        ));
-
-        Feature feature2 = featureWithExtension(textExtension(
-                "create path (sling:Folder) /apps/x/y(cq:ClientLibraryFolder)\n" +
-                        "create path (sling:Folder) /apps/x/y"
-        ));
-
-        String result = RepoInitUtil.validateFeatures(List.of(feature1, feature2)).toString();
-
-        assertTrue(result.contains("Incorrect repoinit for feature"));
-        assertTrue(result.contains("Found 1 sets of conflicting repoinit statements"));
     }
 
     @Test
@@ -101,9 +82,10 @@ public class RepoInitUtilTest {
 
         Feature feature = featureWithExtension(extension);
 
-        String result = RepoInitUtil.validateFeatures(List.of(feature)).toString();
+        RepoInitValidationReport report = RepoInitValidator.validateRepoinit(feature);
 
-        assertTrue(result.contains("No issues found"));
+        assertFalse(report.hasConflicts());
+        assertTrue(report.generate().contains("No issues found"));
     }
 
     private Extension textExtension(String text) {

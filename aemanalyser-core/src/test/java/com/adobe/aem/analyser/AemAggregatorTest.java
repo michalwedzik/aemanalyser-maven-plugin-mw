@@ -31,10 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
-import org.slf4j.LoggerFactory;
 import org.apache.sling.feature.ArtifactId;
 import org.apache.sling.feature.Feature;
 import org.apache.sling.feature.extension.apiregions.api.artifacts.ArtifactRules;
@@ -106,48 +102,6 @@ public class AemAggregatorTest {
 
     }
 
-    @Test
-    public void shouldDetectIncorrectPathsDuringAggregation() throws Exception {
-        Logger logger = (Logger) LoggerFactory.getLogger(RepoInitUtil.class);
-        ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
-        listAppender.start();
-        logger.addAppender(listAppender);
-
-        final AemAggregator agg = new AemAggregator();
-        agg.setFeatureOutputDirectory(tempDir.newFolder("target", "cp-conversion", "fm.out"));
-        agg.setProjectId(ArtifactId.parse("gp:ap:5"));
-        agg.setSdkId(ArtifactId.parse("com.adobe.aem:aem-sdk-api:2026.3.24893.20260312T165332Z-260200"));
-        agg.setFeatureProvider(Feature::new);
-
-        copyTestResource("mappingfiles/runmode_4.mapping",
-                "target/cp-conversion/fm.out/runmode.mapping");
-
-        copyTestResourceDir("features/",
-                "target/cp-conversion/fm.out/");
-
-        agg.aggregate() ;
-
-        assertEquals(1, listAppender.list.size());
-        String normalized = listAppender.list.get(0).getFormattedMessage().replaceAll("(?m)^validateRepoinit took .*\\R?", "");
-
-        assertEquals("Repoinit validation results:\n" +
-                "Incorrect repoinit for feature Assembled Feature [id=gp:ap:slingosgifeature:aggregated-publish:5]\n" +
-                "Found 2 sets of conflicting repoinit statements:\n" +
-                "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/css(cq:ClientLibraryFolder)\n" +
-                "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/css\n" +
-                "\n" +
-                "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/js(cq:ClientLibraryFolder)\n" +
-                "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/js\n" +
-                "\n" +
-                "Incorrect repoinit for feature Assembled Feature [id=gp:ap:slingosgifeature:aggregated-author:5]\n" +
-                "Found 2 sets of conflicting repoinit statements:\n" +
-                "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/css(cq:ClientLibraryFolder)\n" +
-                "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/css\n" +
-                "\n" +
-                "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/js(cq:ClientLibraryFolder)\n" +
-                "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/js\n\n", normalized);
-
-    }
     @Test
     public void testUserAggregates2() throws Exception {
         final AemAggregator agg = new AemAggregator();

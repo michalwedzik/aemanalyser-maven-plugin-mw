@@ -9,7 +9,7 @@
   OF ANY KIND, either express or implied. See the License for the specific language
   governing permissions and limitations under the License.
 */
-package com.adobe.aem.analyser;
+package com.adobe.aem.analyser.validators.repoinit;
 
 import org.apache.sling.feature.Extension;
 import org.apache.sling.feature.ExtensionType;
@@ -24,59 +24,30 @@ import org.slf4j.LoggerFactory;
 
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-class RepoInitUtil {
-    private RepoInitUtil() {}
+public class RepoInitValidator {
+    private RepoInitValidator() {}
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RepoInitUtil.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RepoInitValidator.class);
 
+    public static RepoInitValidationReport validateRepoinit(final Feature feature) {
+        RepoInitValidationReport report = new RepoInitValidationReport();
 
-    static void validateRepoinit(final List<Feature> features) {
-
-        long start = System.nanoTime();
-        StringBuilder validationResult = new StringBuilder();
-        try {
-            validationResult = validateFeatures(features);
-        } finally {
-            long end = System.nanoTime();
-            long durationMs = (end - start) / 1_000_000;
-
-            validationResult.append("validateRepoinit took ");
-            validationResult.append(durationMs);
-            validationResult.append(" ms\n");
-            LOGGER.warn(validationResult.toString());
-        }
-    }
-
-    static StringBuilder validateFeatures(final List<Feature> features) {
-        StringBuilder logMessage = new StringBuilder("Repoinit validation results:\n");
-        for (Feature feature : features) {
-            if (feature.getExtensions().getByName("repoinit") == null) {
-                continue;
-            }
-
-            final Extension repoinitExtension = feature.getExtensions().getByName("repoinit");
-            List<CreatePath[]> conflicts = doesRepoinitHaveConflicts(repoinitExtension);
-
-            if (!conflicts.isEmpty()) {
-                logMessage.append("Incorrect repoinit for feature ").append(feature).append("\n");
-                logMessage.append("Found ").append(conflicts.size()).append(" sets of conflicting repoinit statements:\n");
-                for (CreatePath[] conflict : conflicts) {
-                    logMessage.append(conflict[0].asRepoInitString().stripTrailing()).append("\n");
-                    logMessage.append(conflict[1].asRepoInitString().stripTrailing()).append("\n");
-                    logMessage.append("\n");
-                }
-            }
+        if (feature.getExtensions().getByName("repoinit") == null) {
+            return report;
         }
 
-        if (logMessage.length() > 29) {
-           return logMessage;
-        }
-        return logMessage.append("No issues found\n");
+        final Extension repoinitExtension = feature.getExtensions().getByName("repoinit");
+        List<CreatePath[]> conflicts = doesRepoinitHaveConflicts(repoinitExtension);
+
+        report.addConflicts(feature, conflicts);
+
+        return report;
     }
 
     private static List<CreatePath[]> doesRepoinitHaveConflicts(Extension repoinitExtension) {

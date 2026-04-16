@@ -60,6 +60,7 @@ public class AemAnalyser {
         + ",api-regions"
         + ",api-regions-check-order"
         + ",api-regions-crossfeature-dups"
+        + ",repoinit-conflict-validation"
         + ",api-regions-exportsimports"
         + ",configuration-api"
         + ",region-deprecated-api";

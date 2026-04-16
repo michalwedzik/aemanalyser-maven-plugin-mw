@@ -30,6 +30,8 @@ import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.adobe.aem.analyser.validators.repoinit.RepoInitValidationReport;
+import com.adobe.aem.analyser.validators.repoinit.RepoInitValidator;
 import org.apache.sling.feature.Artifact;
 import org.apache.sling.feature.ArtifactId;
 import org.apache.sling.feature.Extension;
@@ -292,7 +294,13 @@ public class AemAggregator {
 
         final List<Feature> finalResult = this.aggregate(finalAggregates, Mode.FINAL, projectFeatures);
 
-        RepoInitUtil.validateRepoinit(finalResult);
+//        RepoInitValidationReport report = RepoInitValidator.validateRepoinit(finalResult);
+//        if (report.hasConflicts()) {
+//            logger.warn(report.generate());
+//        } else {
+//            logger.info(report.generate());
+//        }
+
         // find final author and publish feature and get configuration api and artifact rules
         Map<ProductVariation, ConfigurationApi> apiMapping = new HashMap<>();
         Map<ProductVariation, ArtifactRules> rules = new HashMap<>();
