@@ -20,11 +20,8 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +30,7 @@ import java.util.Map;
 
 import org.apache.sling.feature.ArtifactId;
 import org.apache.sling.feature.Feature;
+import org.apache.sling.feature.builder.FeatureProvider;
 import org.apache.sling.feature.extension.apiregions.api.artifacts.ArtifactRules;
 import org.apache.sling.feature.extension.apiregions.api.artifacts.Mode;
 import org.apache.sling.feature.extension.apiregions.api.artifacts.VersionRule;
@@ -153,7 +151,14 @@ public class AemAggregatorTest {
         agg.setProjectId(ArtifactId.parse("gp:ap:5"));
         agg.setSdkId(ArtifactId.parse("lala:hoho:0.0.1"));
 
-        agg.setFeatureProvider(Feature::new);
+        agg.setFeatureProvider(new FeatureProvider(){
+
+            @Override
+            public Feature provide(ArtifactId id) {
+                return new Feature(id);
+            }
+
+        });
         final Map<ProductVariation, List<Feature>> aggregates = agg.getProductAggregates();
         assertEquals(2, aggregates.size());
 
@@ -190,7 +195,14 @@ public class AemAggregatorTest {
         agg.setProjectId(ArtifactId.parse("gp:ap:5"));
         agg.setSdkId(ArtifactId.parse("lala:hoho:0.0.1"));
 
-        agg.setFeatureProvider(Feature::new);
+        agg.setFeatureProvider(new FeatureProvider(){
+
+            @Override
+            public Feature provide(ArtifactId id) {
+                return new Feature(id);
+            }
+
+        });
         final Map<String, List<Feature>> userAggregates = new HashMap<>();
         userAggregates.put("user-aggregated-author", Collections.emptyList());
         userAggregates.put("user-aggregated-author.prod", Collections.emptyList());
@@ -246,28 +258,6 @@ public class AemAggregatorTest {
             Path targetPath = tempDir.getRoot().toPath().resolve(file);
             Files.createDirectories(targetPath.getParent());
             Files.copy(is, targetPath);
-        }
-    }
-
-    private void copyTestResourceDir(String resourceDir, String targetDir) throws Exception {
-        URL url = getClass().getResource("/" + resourceDir);
-
-        if (url == null) {
-            throw new IllegalArgumentException("Resource not found: " + resourceDir);
-        }
-
-        Path sourcePath = Paths.get(url.toURI());
-        Path targetPath = tempDir.getRoot().toPath().resolve(targetDir);
-
-        Files.createDirectories(targetPath);
-
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(sourcePath)) {
-            for (Path sourceFile : stream) {
-                if (Files.isRegularFile(sourceFile)) {
-                    Path targetFile = targetPath.resolve(sourceFile.getFileName());
-                    Files.copy(sourceFile, targetFile, StandardCopyOption.REPLACE_EXISTING);
-                }
-            }
         }
     }
 
