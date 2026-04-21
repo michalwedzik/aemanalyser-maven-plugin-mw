@@ -5,8 +5,11 @@ import org.apache.sling.feature.ExtensionType;
 import org.apache.sling.feature.Feature;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -88,10 +91,136 @@ public class RepoInitValidatorTest {
         assertTrue(report.generate().contains("No issues found"));
     }
 
+    @Test
+    public void shouldNotModifyRepoinitWhenFixDisabled() {
+        String original =
+                "create path (sling:Folder) /apps/a/b(cq:ClientLibraryFolder)\n" +
+                        "create path (sling:Folder) /apps/a/b";
+        Extension extension = textExtension(original);
+        Feature feature = featureWithExtension(extension);
+
+        RepoInitValidator.validateRepoinit(feature, false);
+
+        assertEquals(original, extension.getText());
+    }
+
+    @Test
+    public void shouldHandleMultipleConflictsForSamePath() {
+        Extension extension = textExtension(
+                "create path (sling:Folder) /apps/a/b\n" +
+                        "create path (nt:unstructured) /apps/a/b\n" +
+                        "create path (cq:ClientLibraryFolder) /apps/a/b"
+        );
+        Feature feature = featureWithExtension(extension);
+
+        RepoInitValidationReport result = RepoInitValidator.validateRepoinit(feature, false);
+
+        assertTrue(result.hasConflicts());
+        assertTrue(result.generate().contains("Found 3 sets of conflicting repoinit statements"));
+    }
+
+    @Test
+    public void shouldHandleEmptyRepoinit() {
+        Extension extension = textExtension("");
+        Feature feature = featureWithExtension(extension);
+
+        String result = RepoInitValidator.validateRepoinit(feature, false).generate();
+
+        assertTrue(result.contains("No issues found"));
+    }
+
+    @Test
+    public void shouldRemoveConflictsInCustomerExample() {
+        Extension extension = textExtension(
+                "create path (sling:Folder) /apps/namics/genericmultifield/readonly\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/css\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/js\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/readonly\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/css(cq:ClientLibraryFolder)\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/js(cq:ClientLibraryFolder)"
+        );
+
+        Feature feature = featureWithExtension(extension);
+
+        RepoInitValidator.validateRepoinit(feature, true);
+
+        String fixed = extension.getText();
+
+        String expectedRepoinit =
+                "create path (sling:Folder) /apps/namics/genericmultifield/readonly\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/readonly\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/css(cq:ClientLibraryFolder)\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/js(cq:ClientLibraryFolder)";
+        assertEquals(expectedRepoinit, fixed);
+    }
+
+    @Test
+    public void shouldRemoveConflictsInCustomerExampleDifferentOrder() {
+        Extension extension = textExtension(
+                "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/readonly\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/css(cq:ClientLibraryFolder)\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/js(cq:ClientLibraryFolder)\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield/readonly\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/css\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield/clientlibs/js\n"
+        );
+
+        Feature feature = featureWithExtension(extension);
+
+        RepoInitValidator.validateRepoinit(feature, true);
+
+        String fixed = extension.getText();
+
+        String expectedRepoinit =
+                "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/readonly\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/css(cq:ClientLibraryFolder)\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield(sling:Folder)/clientlibs/js(cq:ClientLibraryFolder)\n" +
+                        "create path (sling:Folder) /apps/namics/genericmultifield/readonly";
+        assertEquals(expectedRepoinit, fixed);
+    }
+
+    @Test
+    public void shouldPreserveCommentsWhenFixEnabled() {
+        String original =
+                "# origin=test\n" +
+                        "create path (sling:Folder) /apps/a/b(cq:ClientLibraryFolder)\n" +
+                        "create path (sling:Folder) /apps/a/b";
+
+        Extension extension = textExtension(original);
+        Feature feature = featureWithExtension(extension);
+
+        RepoInitValidator.validateRepoinit(feature, true);
+
+        String fixed = extension.getText();
+        assertTrue(fixed.contains("# origin=test"));
+    }
+
+    @Test
+    public void shouldHandleLeadingWhitespace() {
+        Extension extension = textExtension(
+                "   create path (sling:Folder) /apps/a/b(cq:ClientLibraryFolder)\n" +
+                        "   create path (sling:Folder) /apps/a/b"
+        );
+        Feature feature = featureWithExtension(extension);
+
+        RepoInitValidator.validateRepoinit(feature, true);
+
+        String fixed = extension.getText();
+        assertFalse(fixed.contains("create path (sling:Folder) /apps/a/b\n"));
+    }
+
     private Extension textExtension(String text) {
         Extension extension = mock(Extension.class);
+
         when(extension.getType()).thenReturn(ExtensionType.TEXT);
         when(extension.getText()).thenReturn(text);
+
+        doAnswer(invocation -> {
+            String newText = invocation.getArgument(0);
+            when(extension.getText()).thenReturn(newText);
+            return null;
+        }).when(extension).setText(anyString());
+
         return extension;
     }
 

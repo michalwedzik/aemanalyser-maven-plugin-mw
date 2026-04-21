@@ -24,18 +24,27 @@ import org.slf4j.LoggerFactory;
 
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class RepoInitValidator {
     private RepoInitValidator() {}
 
+    // For now, the problem occurs only for one customer, so the solution is quite specific.
+    private static final Pattern PATTERN = Pattern.compile(
+            "create path \\(sling:Folder\\) /apps/[^\"(]+/clientlibs/(css|js)"
+    );
+
     private static final Logger LOGGER = LoggerFactory.getLogger(RepoInitValidator.class);
 
     public static RepoInitValidationReport validateRepoinit(final Feature feature) {
+        return validateRepoinit(feature, false);
+    }
+
+    public static RepoInitValidationReport validateRepoinit(final Feature feature, boolean fixEnabled) {
         RepoInitValidationReport report = new RepoInitValidationReport();
 
         if (feature.getExtensions().getByName("repoinit") == null) {
@@ -45,9 +54,24 @@ public class RepoInitValidator {
         final Extension repoinitExtension = feature.getExtensions().getByName("repoinit");
         List<CreatePath[]> conflicts = doesRepoinitHaveConflicts(repoinitExtension);
 
+        if (fixEnabled && !conflicts.isEmpty()) {
+            removeConflicts(repoinitExtension);
+        }
+
         report.addConflicts(feature, conflicts);
 
         return report;
+    }
+
+    private static void removeConflicts(Extension repoinitExtension) {
+        String originalText = repoinitExtension.getText();
+
+        List<String> fixedLines = originalText.lines()
+                .filter(line -> !PATTERN.matcher(line).matches())
+                .collect(Collectors.toList());
+
+        String fixedText = String.join("\n", fixedLines);
+        repoinitExtension.setText(fixedText);
     }
 
     private static List<CreatePath[]> doesRepoinitHaveConflicts(Extension repoinitExtension) {

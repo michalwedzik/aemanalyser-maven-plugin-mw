@@ -30,6 +30,7 @@ import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.adobe.aem.analyser.validators.repoinit.RepoInitValidator;
 import org.apache.sling.feature.Artifact;
 import org.apache.sling.feature.ArtifactId;
 import org.apache.sling.feature.Extension;
@@ -90,6 +91,8 @@ public class AemAggregator {
 
     private boolean enableDuplicateBundleHandling = false;
 
+    private boolean enableFixingIncorrectPathsInRepoinit = false;
+
     /**
      * Is the special handling for duplicate bundles enabled?
      * @return {@code true} if enabled
@@ -104,6 +107,14 @@ public class AemAggregator {
      */
     public void setEnableDuplicateBundleHandling(boolean enableDuplicateBundleHandling) {
         this.enableDuplicateBundleHandling = enableDuplicateBundleHandling;
+    }
+
+    public boolean isEnableFixingIncorrectPathsInRepoinit() {
+        return enableFixingIncorrectPathsInRepoinit;
+    }
+
+    public void setEnableFixingIncorrectPathsInRepoinit(boolean enableFixingIncorrectPathsInRepoinit) {
+        this.enableFixingIncorrectPathsInRepoinit = enableFixingIncorrectPathsInRepoinit;
     }
 
     /**
@@ -470,6 +481,7 @@ public class AemAggregator {
             }
 
             postProcessProductFeature(feature);
+            RepoInitValidator.validateRepoinit(feature, enableFixingIncorrectPathsInRepoinit);
 
             final File featureFile = new File(this.getFeatureOutputDirectory(), aggregate.getKey().concat(".json"));
             try ( final Writer writer = new FileWriter(featureFile)) {
