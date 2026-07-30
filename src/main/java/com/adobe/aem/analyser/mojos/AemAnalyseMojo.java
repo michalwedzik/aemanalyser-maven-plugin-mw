@@ -100,6 +100,14 @@ public class AemAnalyseMojo extends AbstractAnalyseMojo {
     boolean repoInitValidation;
 
     /**
+     * If enabled, incorrect paths in repoinit statements are automatically fixed during aggregation.
+     * This can be activated via a Maven profile or command line, for example:
+     * {@code -Daem.analyser.repoinit.fix-paths=true}
+     */
+    @Parameter(defaultValue = "false", property = "aem.analyser.repoinit.fix-paths")
+    boolean enableFixingIncorrectPathsInRepoinit;
+
+    /**
      * Analyzes the given list of content package files.
      * If this is configured, only these files are validated (and potentially {@link #additionalContentPackageArtifacts}),
      * but not the main project artifact or dependencies.
@@ -316,6 +324,7 @@ public class AemAnalyseMojo extends AbstractAnalyseMojo {
             a.setSdkId(sdkId);
             a.setAddOnIds(addons);
             a.setEnableDuplicateBundleHandling(true);
+            a.setEnableFixingIncorrectPathsInRepoinit(this.enableFixingIncorrectPathsInRepoinit);
 
             return a.aggregate();
 

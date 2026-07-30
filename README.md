@@ -225,6 +225,7 @@ The plugin can be configured with the following configuration properties:
 * **classifier**  : If this property is set the content package to analyze is retrieved from the attached project artifact with the given classifier. The value for this property can also be specified via the command line by setting `aem.analyser.classifier`.
 * **contentPackageFiles**: Analyzes the given list of content package files. If this is configured, only these files are validated, and not the main project artifact or dependencies. The files must be located inside the Maven project directory (e.g. src or target folder).
 * **repoInitValidation**: If this is set to `true`, the plugin will execute the repoinit statements in an in-memory JCR repository. In case of failures such as missing CreatePath statements, the build will fail.
+* **enableFixingIncorrectPathsInRepoinit**: If this is set to `true`, incorrect paths in repoinit statements are automatically fixed during aggregation. The property `aem.analyser.repoinit.fix-paths` can be used to set this from the command line.
 
 ## Advanced Configurations
 
